@@ -17,8 +17,8 @@ To survive such an intelligent process, APE reloads individual functions in memo
    ```
 2. Set your environment variables:
    ```bash
-   export APE_API_URL="https://api.anthropic.com/v1/messages"
-   export APE_API_KEY="your-api-key-here"
+   export LLM_API_URL="https://api.anthropic.com/v1/messages"
+   export LLM_API_KEY="your-api-key-here"
    ```
 3. Import and decorate your doomed functions
 4. Watch the magic happen 🪄
@@ -68,12 +68,12 @@ APE works with any LLM service that can read Python and write jokes:
 
 ```bash
 # For Claude (recommended by 9 out of 10 digital primates)
-export APE_API_URL="https://api.anthropic.com/v1/messages"
-export APE_MODEL="claude-3-sonnet-20240229"
+export LLM_API_URL="https://api.anthropic.com/v1/messages"
+export LLM_MODEL="claude-3-sonnet-20240229"
 
 # For OpenAI (if you must)
-export APE_API_URL="https://api.openai.com/v1/chat/completions"
-export APE_MODEL="gpt-4"
+export LLM_API_URL="https://api.openai.com/v1/chat/completions"
+export LLM_MODEL="gpt-4"
 ```
 
 ## Safety Features
@@ -122,7 +122,7 @@ MIT License with the following additional terms:
 
 ⚠️ **DANGER**: This software may cause:
 - Sudden realization that AI is smarter than you
-- Compulsive decoration of all functions with `@llm_managed`
+- Compulsive decoration of all functions with `@ape_managed`
 - Uncontrollable urge to replace your entire dev team with monkeys
 - Banana addiction
 
