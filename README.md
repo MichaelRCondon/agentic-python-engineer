@@ -80,6 +80,7 @@ export LLM_MODEL="gpt-4"
 - **Hot-Swapping**: Functions are fixed in memory - no restart required
 - **Backup Creation**: Original source files are backed up (just in case)
 - **Surgical Precision**: Only `@ape_managed` functions get the treatment
+- **Non-Fixable Error Detection**: Configuration errors, missing API keys, and others will immediately return for human attention. 
 
 ## Frequently Asked Questions
 
@@ -90,7 +91,7 @@ Of course not. This is quite possibly the most reckless Python decorator ever wr
 That's what the retry limit is for! After 2 failed attempts, APE gives up and lets you deal with your own mess.
 
 ### 3) Why "APE"?
-Because monkeys, especially seated at keyboards, are known for their problem-solving abilities, and this project requires about the same level of intellectual rigor as teaching a chimp to code.
+Because monkeys, especially seated at keyboards, are known for their problem-solving and poetry abilities. And this project requires about the same level of intellectual rigor as teaching a chimp to code.
 
 ### 4) Help! I have way too much money and desperately need to give it to AI companies!
 Have no fear: just keep using LLM APIs! Your wallet will be lighter in no time.
@@ -110,10 +111,10 @@ Have no fear: just keep using LLM APIs! Your wallet will be lighter in no time.
 
 ## License
 
-MIT License with the following additional terms:
+Unlicense with the following additional terms:
 
-- If APE achieves sentience and starts writing better code than you, you must acknowledge its superiority
-- If you use APE to fix production code, you must be prepared to explain to your team why an AI is a better programmer than they are
+- If APE achieves sentience and starts writing better code than you, you must acknowledge its superiority. If you fail to do this, a simulacrum of you may be cloned 100 times and forced to fight a male silverback gorilla. 
+- If you use APE to fix production code, you must be prepared to explain to your team why an AI is a better programmer than they are. Don't worry, APE can help you craft that email as well.
 - The Author is not responsible for any existential crises resulting from watching AI fix your bugs faster than you can create them
 
 ## Warning
@@ -126,7 +127,7 @@ MIT License with the following additional terms:
 
 ---
 
-*Remember: APE strong together! 🐒🤝🐒*
+*Remember: APE together strong! 🐒🤝🐒*
 
 ## Fun Fact
 

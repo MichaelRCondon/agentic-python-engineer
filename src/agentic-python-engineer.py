@@ -37,11 +37,15 @@ class ApeMode(Enum):
     """APE operation modes"""
     FULL_BANANAS = "full_bananas"      # Auto hot-swap and retry (default)
     APE_SUPERVISED = "ape_supervised"  # Log suggestion, manual replacement
-    # Future: GOING_BANANAS = "going_bananas"  # More aggressive mode
 
 
 class ApeManagerError(Exception):
     """Custom exception for APE Manager related errors"""
+    pass
+
+
+class ApeCannotFixError(Exception):
+    """Exception raised when APE cannot fix a function and human intervention is required"""
     pass
 
 
@@ -54,9 +58,9 @@ class ApeManager:
     
     def _load_config(self) -> None:
         """Load configuration from environment variables"""
-        self.api_url = os.getenv('LLM_API_URL')
-        self.api_key = os.getenv('LLM_API_KEY')
-        self.model = os.getenv('LLM_MODEL', 'claude-3-sonnet-20240229')
+        self.api_url = os.getenv('APE_API_URL')
+        self.api_key = os.getenv('APE_API_KEY')
+        self.model = os.getenv('APE_MODEL', 'claude-3-sonnet-20240229')
         
         # Load mode configuration
         mode_str = os.getenv('APE_MODE', 'FULL_BANANAS').upper()
@@ -71,13 +75,13 @@ class ApeManager:
         
         if not self.api_url:
             raise ApeManagerError(
-                "LLM_API_URL environment variable is required. "
+                "APE_API_URL environment variable is required. "
                 "Please set it to your LLM service endpoint (e.g., https://api.anthropic.com/v1/messages)"
             )
         
         if not self.api_key:
             raise ApeManagerError(
-                "LLM_API_KEY environment variable is required. "
+                "APE_API_KEY environment variable is required. "
                 "Please set it to your LLM service API key"
             )
         
@@ -212,6 +216,12 @@ Please analyze the full call stack context to understand what this function shou
             result = response.json()
             fixed_code = result['content'][0]['text']
             
+            # Check if APE can't fix this function (special response format)
+            if fixed_code.strip().startswith("🥹👉👈 I can't fix this one:"):
+                # Extract the explanation after the prefix
+                explanation = fixed_code.strip()[len("🥹👉👈 I can't fix this one:"):].strip()
+                raise ApeCannotFixError(f"APE cannot fix this function: {explanation}")
+            
             # Extract function from markdown if present
             if '```python' in fixed_code:
                 start = fixed_code.find('```python') + 9
@@ -220,6 +230,9 @@ Please analyze the full call stack context to understand what this function shou
             
             return fixed_code
             
+        except ApeCannotFixError:
+            # Re-raise APE cannot fix errors
+            raise
         except Exception as e:
             print(f"😅 APE API call failed: {e}")
             return None
@@ -331,9 +344,9 @@ def ape_managed(func: Callable) -> Callable:
     and then retry the call with the same arguments.
     
     Environment variables required:
-    - LLM_API_URL: The LLM service endpoint (e.g., https://api.anthropic.com/v1/messages)
-    - LLM_API_KEY: Your LLM service API key
-    - LLM_MODEL: (Optional) The model to use (defaults to claude-3-sonnet-20240229)
+    - APE_API_URL: The LLM service endpoint (e.g., https://api.anthropic.com/v1/messages)
+    - APE_API_KEY: Your LLM service API key
+    - APE_MODEL: (Optional) The model to use (defaults to claude-3-sonnet-20240229)
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -359,14 +372,20 @@ def ape_managed(func: Callable) -> Callable:
                         
             except Exception as e:
                 if retry_count >= max_retries:
-                    print(f"🙈 Max retries ({max_retries}) reached for '{func.__name__}'. Giving up.")
+                    print(f"❌ Max retries ({max_retries}) reached for '{func.__name__}'. Giving up.")
                     raise e
                 
                 print(f"💥 @ape_managed function '{func.__name__}' failed (attempt {retry_count + 1}): {e}")
-                print("Requesting APE 🦍 assistance for function repair...")
+                print("🤖 Requesting APE assistance for function repair...")
                 
                 # Attempt to get APE to fix just this function
-                fixed_function = _ape_manager.request_function_fix(wrapper, e)
+                try:
+                    fixed_function = _ape_manager.request_function_fix(wrapper, e)
+                except ApeCannotFixError as cannot_fix_error:
+                    print(f"🚨 {cannot_fix_error}")
+                    print("👨‍💻 Human intervention required - this is not something APE can fix automatically.")
+                    raise cannot_fix_error
+                
                 if fixed_function:
                     if _ape_manager.mode == ApeMode.FULL_BANANAS:
                         # Full automatic mode - hot-swap and retry
