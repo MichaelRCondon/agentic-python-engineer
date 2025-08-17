@@ -71,6 +71,8 @@ def show_manager_info():
     
     print(f"   🌐 API URL: {status['api_url']}")
     print(f"   🧠 Model: {status['model']}")
+    print(f"   🐒 Mode: {status['mode'].upper()}")
+    print(f"   📝 Prompt Template: {status['prompt_template_path']}")
     print(f"   📈 Managed Functions: {status['managed_function_count']}")
 
 

@@ -1,4 +1,20 @@
-#!/usr/bin/env python3
+def get_context_functions(self, failed_func_name: str, traceback_str: str) -> Dict[str, str]:
+        """Get source code for all functions in the call stack for context"""
+        context_functions = {}
+        tb_functions = self.extract_functions_from_traceback(traceback_str)
+        current_module = sys.modules[inspect.getmodule(inspect.stack()[1][0]).__name__]
+        
+        for name in tb_functions:
+            if hasattr(current_module, name):
+                func_obj = getattr(current_module, name)
+                if callable(func_obj):
+                    try:
+                        source = inspect.getsource(func_obj)
+                        context_functions[name] = source
+                    except Exception as e:
+                        context_functions[name] = f"# Could not retrieve source: {e}"
+        
+        return context_functions#!/usr/bin/env python3
 """
 Agentic Python Engineer (APE) - Function Management Decorator
 A decorator that allows APE to automatically fix failing functions using AI.
@@ -12,8 +28,16 @@ import traceback
 import inspect
 import ast
 import re
+from enum import Enum
 from functools import wraps
 from typing import Dict, Callable, Optional, Any
+
+
+class ApeMode(Enum):
+    """APE operation modes"""
+    FULL_BANANAS = "full_bananas"      # Auto hot-swap and retry (default)
+    APE_SUPERVISED = "ape_supervised"  # Log suggestion, manual replacement
+    # Future: GOING_BANANAS = "going_bananas"  # More aggressive mode
 
 
 class ApeManagerError(Exception):
@@ -34,6 +58,17 @@ class ApeManager:
         self.api_key = os.getenv('LLM_API_KEY')
         self.model = os.getenv('LLM_MODEL', 'claude-3-sonnet-20240229')
         
+        # Load mode configuration
+        mode_str = os.getenv('APE_MODE', 'FULL_BANANAS').upper()
+        try:
+            self.mode = ApeMode(mode_str.lower())
+        except ValueError:
+            print(f"⚠️ Invalid APE_MODE '{mode_str}'. Using FULL_BANANAS.")
+            self.mode = ApeMode.FULL_BANANAS
+        
+        # Load prompt template path
+        self.prompt_template_path = os.getenv('APE_PROMPT_TEMPLATE', 'ape_prompt.md')
+        
         if not self.api_url:
             raise ApeManagerError(
                 "LLM_API_URL environment variable is required. "
@@ -47,6 +82,8 @@ class ApeManager:
             )
         
         print(f"✅ APE Manager configured with endpoint: {self.api_url}")
+        print(f"🐒 APE Mode: {self.mode.value.upper()}")
+        print(f"📝 Prompt template: {self.prompt_template_path}")
     
     def register_function(self, func: Callable) -> None:
         """Register a function as APE-managed"""
@@ -75,7 +112,41 @@ class ApeManager:
         
         return list(set(function_names))
     
-    def get_context_functions(self, failed_func_name: str, traceback_str: str) -> Dict[str, str]:
+    def load_prompt_template(self) -> str:
+        """Load the prompt template from external file"""
+        try:
+            with open(self.prompt_template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except FileNotFoundError:
+            print(f"⚠️ Prompt template file '{self.prompt_template_path}' not found. Using fallback.")
+            return self._get_fallback_prompt_template()
+        except Exception as e:
+            print(f"⚠️ Error loading prompt template: {e}. Using fallback.")
+            return self._get_fallback_prompt_template()
+    
+    def _get_fallback_prompt_template(self) -> str:
+        """Fallback prompt template if external file is not available"""
+        return """I have a Python function that's failing. Please rewrite ONLY the failed function to fix the error.
+
+ERROR DETAILS:
+{error_info}
+
+FAILED FUNCTION SOURCE:
+```python
+{failed_function_source}
+```
+{context_section}
+
+REQUIREMENTS:
+- This function is decorated with @ape_managed
+- Keep the same function name and general purpose  
+- The API endpoint might be fake/broken - you can replace it with a real one
+- Add proper error handling
+- Maintain any comments if possible
+- Consider the data flow and expectations from context functions
+- Return ONLY the fixed function definition (including the @ape_managed decorator)
+
+Please analyze the full call stack context to understand what this function should return and how it fits into the larger program flow."""
         """Get source code for all functions in the call stack for context"""
         context_functions = {}
         tb_functions = self.extract_functions_from_traceback(traceback_str)
@@ -110,29 +181,13 @@ class ApeManager:
         
         error_info = f"Function: {func.__name__}\nError: {str(error)}\nFull Traceback:\n{full_traceback}"
         
-        prompt = f"""
-I have a Python function that's failing. Please rewrite ONLY the failed function to fix the error.
-
-ERROR DETAILS:
-{error_info}
-
-FAILED FUNCTION SOURCE:
-```python
-{failed_function_source}
-```
-{context_section}
-
-REQUIREMENTS:
-- This function is decorated with @ape_managed
-- Keep the same function name and general purpose  
-- The API endpoint might be fake/broken - you can replace it with a real one
-- Add proper error handling
-- Maintain any comments if possible
-- Consider the data flow and expectations from context functions
-- Return ONLY the fixed function definition (including the @ape_managed decorator)
-
-Please analyze the full call stack context to understand what this function should return and how it fits into the larger program flow.
-"""
+        # Load prompt template and format it
+        prompt_template = self.load_prompt_template()
+        prompt = prompt_template.format(
+            error_info=error_info,
+            failed_function_source=failed_function_source,
+            context_section=context_section
+        )
 
         headers = {
             'Content-Type': 'application/json',
@@ -304,37 +359,50 @@ def ape_managed(func: Callable) -> Callable:
                         
             except Exception as e:
                 if retry_count >= max_retries:
-                    print(f"❌ Max retries ({max_retries}) reached for '{func.__name__}'. Giving up.")
+                    print(f"🙈 Max retries ({max_retries}) reached for '{func.__name__}'. Giving up.")
                     raise e
                 
                 print(f"💥 @ape_managed function '{func.__name__}' failed (attempt {retry_count + 1}): {e}")
-                print("🤖 Requesting APE assistance for function repair...")
+                print("Requesting APE 🦍 assistance for function repair...")
                 
                 # Attempt to get APE to fix just this function
                 fixed_function = _ape_manager.request_function_fix(wrapper, e)
                 if fixed_function:
-                    # Get the calling module for hot-swapping
-                    caller_frame = inspect.currentframe().f_back
-                    caller_module = inspect.getmodule(caller_frame)
-                    
-                    # Try hot-swapping first
-                    new_func = _ape_manager.hot_swap_function(func.__name__, fixed_function, caller_module)
-                    if new_func:
-                        print(f"🔧 Function '{func.__name__}' has been hot-swapped!")
-                        print("🔄 Retrying with the fixed function...")
-                        retry_count += 1
-                        continue
-                    else:
-                        # Fall back to file replacement
-                        source_file = inspect.getfile(caller_frame)
-                        if _ape_manager.replace_function_in_source(func.__name__, fixed_function, source_file):
-                            print(f"🔧 Function '{func.__name__}' has been updated in source!")
-                            print("🔄 Please restart the program to use the fixed version.")
+                    if _ape_manager.mode == ApeMode.FULL_BANANAS:
+                        # Full automatic mode - hot-swap and retry
+                        caller_frame = inspect.currentframe().f_back
+                        caller_module = inspect.getmodule(caller_frame)
+                        
+                        # Try hot-swapping first
+                        new_func = _ape_manager.hot_swap_function(func.__name__, fixed_function, caller_module)
+                        if new_func:
+                            print(f"🔧 Function '{func.__name__}' has been hot-swapped!")
+                            print("🔄 Retrying with the fixed function...")
+                            retry_count += 1
+                            continue
                         else:
-                            print(f"😔 Both hot-swap and file update failed for '{func.__name__}'.")
+                            # Fall back to file replacement
+                            source_file = inspect.getfile(caller_frame)
+                            if _ape_manager.replace_function_in_source(func.__name__, fixed_function, source_file):
+                                print(f"🔧 Function '{func.__name__}' has been updated in source!")
+                                print("🔄 Please restart the program to use the fixed version.")
+                            else:
+                                print(f"🥹👉👈 Both hot-swap and file update failed for '{func.__name__}'.")
+                            break
+                    
+                    elif _ape_manager.mode == ApeMode.APE_SUPERVISED:
+                        # Supervised mode - log suggestion and stop
+                        print(f"🐒 APE SUPERVISED MODE - Suggested fix for '{func.__name__}':")
+                        print("=" * 60)
+                        print(fixed_function)
+                        print("=" * 60)
+                        print("📝 To apply this fix:")
+                        print(f"   1. Replace the '{func.__name__}' function with the code above")
+                        print("   2. Restart your program")
+                        print("   3. Test the fix")
                         break
                 else:
-                    print(f"😔 APE couldn't fix '{func.__name__}'. Manual intervention required.")
+                    print(f"🥹👉👈 APE couldn't fix '{func.__name__}'. Manual intervention required.")
                     break
         
         # If we get here, all retries failed
@@ -358,6 +426,8 @@ def get_manager_status() -> Dict[str, Any]:
     return {
         'api_url': _ape_manager.api_url,
         'model': _ape_manager.model,
+        'mode': _ape_manager.mode.value,
+        'prompt_template_path': _ape_manager.prompt_template_path,
         'managed_function_count': len(_ape_manager.managed_functions),
         'managed_functions': list(_ape_manager.managed_functions.keys())
     }

@@ -1,11 +1,11 @@
 # 🐒 Agentic Python Engineer (APE)
 
-**APE strong together** 🦍
+**APE Together Strong** 🦍
 ---
 
 ## What is APE?
 
-APE uses state-of-the-art artificial intelligence to make sure your Python code runs whether your functions like it or not. Through a process known as **B.A.N.A.N.A.S** (Break-Analyze-Natural language processing-Auto-fix-Never give up-And-Succeed), APE repeatedly detects failing functions, sends them to an LLM for emergency surgery, and hot-swaps the fixed code back into your running program.
+APE uses state-of-the-art artificial intelligence to make sure your Python code runs whether your functions like it or not. Through a process known as **B.Ana.N.A.S** (described in detail below), APE repeatedly detects failing functions, sends them to an LLM for emergency surgery, and hot-swaps the fixed code back into your running program.
 
 To survive such an intelligent process, APE reloads individual functions in memory after each fix, allowing your program to continue executing without missing a beat.
 
@@ -20,7 +20,7 @@ To survive such an intelligent process, APE reloads individual functions in memo
    export LLM_API_URL="https://api.anthropic.com/v1/messages"
    export LLM_API_KEY="your-api-key-here"
    ```
-3. Import and decorate your doomed functions
+3. Import and decorate your functions
 4. Watch the magic happen 🪄
 
 ## Usage
@@ -29,25 +29,23 @@ To survive such an intelligent process, APE reloads individual functions in memo
 from agentic_python_engineer import ape_managed
 
 @ape_managed
-def your_terrible_function():
+def your_function():
     # This will probably break
     return definitely_undefined_variable * impossible_math()
 
 # APE will automatically fix it when it fails!
-result = your_terrible_function()  # Somehow this works now
+result = your_function()  # Somehow this works now
 ```
 
 Our tireless APE engineers will take your old and moldy bananas (broken functions) and lovingly transform them into delicious, functional banana bread 🍞. The end result might not look like your original recipe, but it'll be infinitely more edible and significantly less likely to poison your users.
 
-## The B.A.N.A.N.A.S Process
+## The B.Ana.N.A.S Process
 
-- **B**reak - Your function crashes spectacularly
-- **A**nalyze - APE examines the carnage and gathers context
-- **N**atural language processing - LLM reads the error like a bedtime story
-- **A**uto-fix - AI generates a working replacement
+- **B**arf - Your function crashes
+- **Ana**lyze - APE reviews, and carefully devizes a code replacement strategy
 - **N**ever give up - Hot-swaps the function in memory
-- **A**nd retry - Attempts the call again with same arguments
-- **S**ucceed - Celebrates with digital banana dance 🍌💃
+- **A**dvance - Re-run the newly functional code
+- **S**uccess - Your code now *works*!
 
 ## Advanced Usage
 
@@ -71,7 +69,7 @@ APE works with any LLM service that can read Python and write jokes:
 export LLM_API_URL="https://api.anthropic.com/v1/messages"
 export LLM_MODEL="claude-3-sonnet-20240229"
 
-# For OpenAI (if you must)
+# For OpenAI
 export LLM_API_URL="https://api.openai.com/v1/chat/completions"
 export LLM_MODEL="gpt-4"
 ```
